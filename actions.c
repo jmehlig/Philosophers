@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 14:32:19 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/05/16 17:21:18 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/04 12:27:22 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,6 +33,23 @@ int	ft_start(t_philo *philos, t_times times)
 	retuen (0);
 }
 
+void	ft_print(t_times times, int num, t_state state)
+{
+	int	time;
+
+	time = times.time_begin;
+	if (state == DYING)
+		printf("%ims  %i   has    died\n", time, num);
+	else if (state == TAKE_FORK)
+		printf("%ims  %i   has   taken a fork\n", time, num);
+	else if (state == EATING)
+		printf("%ims  %i   is    eating\n", time, num);
+	else if (state == SLEEPING)
+		printf("%ims  %i   is    sleeping\n", time, num);
+	else if (state == THINKING)
+		printf("%ims  %i   is    thinking\n", time, num);
+}
+
 void	*p_routine(void *philo_in)
 {
 	t_philo	*philo;
@@ -49,14 +66,14 @@ void	*p_routine(void *philo_in)
 			try_eating(philo, times);
 			if (times->meal_counter == times->meals_to_eat)
 				break ;
-			print(times, philo->number, SLEEPING);
+			ft_print(times, philo->number, SLEEPING);
 			go_sleeping(times->t_sleep, times);
-			print(times, philo->number, THINKING);
+			ft_print(times, philo->number, THINKING);
 			i++;
 		}
 	}
 	else
-		usleep(30);
+		usleep(33333);
 	return (NULL);
 }
 

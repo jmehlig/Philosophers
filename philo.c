@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 13:08:51 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/05/16 17:29:34 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/04 12:06:56 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -52,7 +52,7 @@ void	start_mutex(t_times *times)
 			exit_error("Creating mutex went wrong");
 		i--;
 	}
-	if (pthread_mutex_init(&(times->writing), NULL))
+	if (pthread_mutex_init(&(times->print), NULL))
 		exit_error("Creating mutex went wrong");
 	if (pthread_mutex_init(&(times->meal_check), NULL))
 		exit_error("Creating mutex went wrong");
