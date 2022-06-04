@@ -12,34 +12,51 @@
 
 #include "philo.h"
 
-void	ft_start(t_philo *philos, t_times times)
+int	ft_start(t_philo *philos, t_times times)
 {
 	t_thread	threads[times.num_philos];
 	int			i;
 	int			res;
 
 	times.philos = philos;
+	times.time_begin = ft_time();
 	i = 0;
 	while (i < times.num_philos)
 	{
-		threads[i] = i + 1;
+		threads[i].num = i + 1;
 		res = pthread_create(&threads[i].thread, NULL, p_routine, &threads[i]);
 		if (!res)
 			return (exit_error("Thread create problem"));
+		i++;
 	}
 	check_death(threads, times, philos);
+	retuen (0);
 }
 
 void	*p_routine(void *philo_in)
 {
 	t_philo	*philo;
+	t_times	*times;
+	int		i;
 
 	philo = (t_philo *)philo_in;
-	if (philo.number % 2 == 0)
+	*times = philo->times;
+	i = 0;
+	if (philo->number % 2 != 0) //Wenn ich von 0 anfange, können ungerade nicht nebeneinander sitzen
 	{
-		if ()
-		philo.right_fork = 1;
+		while (!times->death)
+		{
+			try_eating(philo, times);
+			if (times->meal_counter == times->meals_to_eat)
+				break ;
+			print(times, philo->number, SLEEPING);
+			go_sleeping(times->t_sleep, times);
+			print(times, philo->number, THINKING);
+			i++;
+		}
 	}
-
+	else
+		usleep(30);
+	return (NULL);
 }
 

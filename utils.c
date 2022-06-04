@@ -28,6 +28,7 @@ int	exit_error(char *mes)
 {
 	printf("%s", mes);
 	exit(EXIT_FAILURE);
+}
 
 int	ft_atoi(const char *str)
 {
