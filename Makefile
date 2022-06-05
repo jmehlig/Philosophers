@@ -6,38 +6,40 @@
 #    By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/05/04 12:54:14 by jmehlig           #+#    #+#              #
-#    Updated: 2022/05/04 14:32:46 by jmehlig          ###   ########.fr        #
+#    Updated: 2022/06/05 10:54:42 by jmehlig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
 NAME = philo
 
-SRCS_PATH = ./srcs/
+CC = gcc
+CFLAGS = -Wall -Werror -Wextra -pthread
 
-SRCS =	$(SRCS_PATH)philo.c \
-		$(SRCS_PATH)utils.c \
-		$(SRCS_PATH)actions.c \
+RM = rm -rf
 
-OBJS = $(SRCS:.c=.o)
+AR = ar rs
 
-CC		=		gcc
+SDIR = srcs
+SRCS = 	philo.c \
+		utils.c \
+		actions.c \
 
-CFLAGS	=		-Wall -Wextra -Werror
+ODIR = objs
+OBJS = $(patsubst %.c, %.o, $(SRCS))
 
-all:	$(NAME)
-
-.PHONY:	clean fclean re bonus bench bclean
-
-$(NAME):
-	$(CC) $(CFLAGS) -o $(NAME) $(SRCS) $(OBJS)
+$(NAME): $(addprefix $(SDIR)/, $(SRCS))
+	$(CC) $(CFLAGS) -c $^
+	@mkdir -p $(ODIR)
+	@mv $(OBJS) $(ODIR)
+	$(CC) $(CFLAGS) $(addprefix $(ODIR)/, $(OBJS)) -o $(NAME)
+all: $(NAME)
 
 clean:
-		rm -f $(OBJS)
+	$(RM) $(ODIR)
 
 fclean: clean
-	rm -f $(NAME)
+	$(RM) $(NAME)
 
 re: fclean all
 
-%.o: %.c $(HEADER)
-	$(CC) $(CFLAGS) -c $<  -o $(<:.c=.o)
+.PHONY: all clean fclean re bonus .c .o
