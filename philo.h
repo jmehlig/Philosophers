@@ -39,7 +39,7 @@ typedef struct s_philo
 	int			*fork_used;
 	int			meals;
 	t_times		times;
-	pthread_mutex_t	mutex;
+	t_thread	thread;
 }				t_philo;
 
 typedef struct s_times
@@ -55,7 +55,7 @@ typedef struct s_times
 	int			death;
 	pthread_mutex_t	forks[250];
 	pthread_mutex_t	print;
-	pthread_mutex_t	meal_check; //NAME ÄNDERN!!!
+	pthread_mutex_t	is_eating;
 	t_philo		*philos;
 }				t_times;
 
@@ -77,7 +77,7 @@ int			ft_atoi(const char *str);
 
 //actions.c
 int			ft_start(t_philo *philos, t_times times);
-void		ft_print(t_times times;, int num, t_state state);
+void		ft_print(t_times times, int num, t_state state);
 void		*p_routine(void *philo_in);
 
 #endif
