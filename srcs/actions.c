@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 14:32:19 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/05 13:43:26 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/05 16:55:14 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,28 +34,36 @@ void	ft_stop(t_times times, t_philo *philo)
 		pthread_join(philo[i].thread, NULL);
 		i++;
 	}
-	while (j < times.num_philos)
-	{
-		pthread_mutex_destroy(&(times.forks[j]));
-		j++;
-	}
+	// while (j < times.num_philos)
+	// {
+	// 	pthread_mutex_destroy(&(times.forks[j]));
+	// 	j++;
+	// }
+	pthread_mutex_destroy(&(times.mutex));
 	pthread_mutex_destroy(&(times.print));
 }
 
-void	try_eating(t_philo philo, t_times *times)
+bool	try_eating(t_philo philo, t_times *times)
 {
-	pthread_mutex_lock(&(times->forks[philo.left_fork]));
-	ft_print(*times, philo.number, TAKE_FORK);
-	pthread_mutex_lock(&(times->forks[philo.right_fork]));
-	ft_print(*times, philo.number, TAKE_FORK);
-	pthread_mutex_lock(&(times->is_eating));
-	ft_print(*times, philo.number, EATING);
-	philo.time_since_meal = ft_time();
-	pthread_mutex_unlock(&(times->is_eating));
-	go_sleeping(times->t_sleep);
-	pthread_mutex_unlock(&(times->forks[philo.left_fork]));
-	pthread_mutex_unlock(&(times->forks[philo.right_fork]));
-	(philo.meals)++;
+	if (times->fork_states[philo.left_fork] == false && times->fork_states[philo.right_fork] == false)
+	{
+		//printf("test");
+		pthread_mutex_lock(&(times->mutex));
+		times->fork_states[philo.left_fork] = true;
+		ft_print(*times, philo.number, TAKE_FORK);
+		times->fork_states[philo.right_fork] = true;
+		ft_print(*times, philo.number, TAKE_FORK);
+		philo.state = EATING;
+		ft_print(*times, philo.number, EATING);
+		times->fork_states[philo.left_fork] = false;
+		times->fork_states[philo.right_fork] = false;
+		pthread_mutex_unlock(&(times->mutex));
+		philo.time_since_meal = ft_time();
+	//	go_sleeping(times->t_sleep);
+		(philo.meals)++;
+		return (true);
+	}
+	return (false);
 }
 
 int	ft_start(t_philo *philos, t_times times)
@@ -107,7 +115,7 @@ void	check_if_died(t_times *times, t_philo *philo)
 {
 	int	i;
 
-	while (times->meal_counter < times->meals_to_eat && times->death == 0)
+	while (times->meal_counter < times->meals_to_eat && times->death == false)
 	{
 		i = 0;
 		while (i < times->num_philos)
@@ -115,7 +123,7 @@ void	check_if_died(t_times *times, t_philo *philo)
 			if (ft_time() - philo[i].time_since_meal > times->t_die)
 			{
 				ft_print(*times, i, DYING);
-				times->death = 1;
+				times->death = true;
 			}
 			i++;
 			//usleep(50);
@@ -133,26 +141,26 @@ void	*p_routine(void *philo_in)
 	t_philo	*philo;
 	t_times	times;
 	int		i;
-
-	//write(1, "here\n", 5);
 	philo = (t_philo *)philo_in;
 	times = philo->times;
 	i = 0;
-	if (philo[i].number % 2 != 0) //Wenn ich von 0 anfange, können ungerade nicht nebeneinander sitzen
+	if (philo[i].number % 2 == 0)
+		usleep((times.t_eat - 10) * 1000); // Abhängig von den gegebenen Zeiten?
+	while (times.death == false)
 	{
-		while (times.death == 0)
+		if (try_eating(philo[i], &times) == true)
 		{
-			try_eating(philo[i], &times);
+			printf("haaaaaalllo");
 			if (times.meal_counter == times.meals_to_eat)
 				break ;
+			philo->state = SLEEPING;
 			ft_print(times, philo[i].number, SLEEPING);
 			go_sleeping(times.t_sleep);
+			philo->state = THINKING;
 			ft_print(times, philo[i].number, THINKING);
 			i++;
 		}
 	}
-	else
-		usleep(times.t_sleep * 1000); // Abhängig von den gegebenen Zeiten?
 	check_if_died(&times, philo);
 	ft_stop(times, philo);
 	return (NULL);

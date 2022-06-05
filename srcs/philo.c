@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 13:08:51 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/05 13:33:09 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/05 16:51:23 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -38,7 +38,7 @@ int	main(int argc, char *argv[])
 	}
 	times.num_philos = ft_atoi(argv[1]);
 	if(ft_init(argv, times) == 1)
-		return (exit_error("Argument out of range"));
+		return (exit_error("Input out of range"));
 }
 
 void	start_mutex(t_times *times)
@@ -46,16 +46,30 @@ void	start_mutex(t_times *times)
 	int	i;
 
 	i = 0;
-	while (i < times->num_philos)
-	{
-		if (pthread_mutex_init(&(times->forks[i]), NULL))
-			exit_error("Creating mutex went wrong");
-		i++;
-	}
+	// while (i < times->num_philos)
+	// {
+	// 	if (pthread_mutex_init(&(times->forks[i]), NULL))
+	// 		exit_error("Creating mutex went wrong");
+	// 	i++;
+	// }
+	if (pthread_mutex_init(&times->mutex, NULL))
+		exit_error("Creating mutex went wrong");
 	if (pthread_mutex_init(&(times->print), NULL))
 		exit_error("Creating mutex went wrong");
 	if (pthread_mutex_init(&(times->is_eating), NULL))
 		exit_error("Creating mutex went wrong");
+}
+
+void	init_fork_states(t_times *times)
+{
+	int	i;
+
+	i = 0;
+	while (i < times->num_philos)
+	{
+		times->fork_states[i] = false;
+		i++;
+	}
 }
 
 int	ft_init(char *argv[], t_times times)
@@ -63,16 +77,18 @@ int	ft_init(char *argv[], t_times times)
 	t_philo			*philos;
 	int		i;
 
-	times.forks = malloc(sizeof(pthread_mutex_t) * times.num_philos);
+	//times.forks = malloc(sizeof(pthread_mutex_t) * times.num_philos);
+	times.fork_states = malloc (sizeof(bool) * times.num_philos);
 	philos = malloc(sizeof(t_philo) * times.num_philos);
-	if (!times.forks || !philos)
+	if (!philos || !times.fork_states)
 		return (1);
+	init_fork_states(&times);
 	times.time_begin = ft_time();
 	times.t_die = ft_atoi(argv[2]);
 	times.t_eat = ft_atoi(argv[3]);
 	times.t_sleep = ft_atoi(argv[4]);
 	times.meal_counter = 0;
-	times.death = 0;
+	times.death = false;
 	if (times.t_eat > times.t_die)
 		times.t_eat = times.t_die;
 	if (times.t_sleep > times.t_die)
@@ -94,7 +110,7 @@ int	ft_init(char *argv[], t_times times)
 	while (i < times.num_philos)
 	{
 		philos[i] = init_philo(i);
-		if (i == times.num_philos)
+		if (i == times.num_philos - 1)
 			philos[i].left_fork = 0;
 		i++;
 	}

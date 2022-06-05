@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 13:09:20 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/05 13:32:54 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/05 16:47:44 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,6 +18,7 @@
 # include <sys/time.h>
 # include <unistd.h>
 # include <stdlib.h>
+# include <stdbool.h>
 # include <limits.h>
 
 typedef struct s_times t_times;
@@ -46,9 +47,9 @@ typedef struct s_times
 	int			meal_counter;
 	int			meals_to_eat;
 	int			num_philos;
-	//int			*forks;
-	int			death;
-	pthread_mutex_t	*forks;
+	bool		*fork_states;
+	bool		death;
+	pthread_mutex_t	mutex;
 	pthread_mutex_t	print;
 	pthread_mutex_t	is_eating;
 }				t_times;
@@ -79,7 +80,7 @@ int			ft_atoi(const char *str);
 //actions.c
 void		go_sleeping(int t_sleep);
 void		ft_stop(t_times times, t_philo *philo);
-void		try_eating(t_philo philo, t_times *times);
+bool		try_eating(t_philo philo, t_times *times);
 int			ft_start(t_philo *philos, t_times times);
 void		ft_print(t_times times, int num, t_state state);
 void		check_if_died(t_times *times, t_philo *philo);
