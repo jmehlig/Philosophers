@@ -6,18 +6,18 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 14:32:19 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/05 16:55:14 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/06 12:47:10 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	go_sleeping(int t_sleep)
+void	go_sleeping(int time)
 {
 	long long i;
 
 	i = ft_time();
-	while (t_sleep < ft_time() - i)
+	while (time < ft_time() - i)
 		usleep(5);
 }
 
@@ -66,28 +66,27 @@ bool	try_eating(t_philo philo, t_times *times)
 	return (false);
 }
 
-int	ft_start(t_philo *philos, t_times times)
+int	ft_start(t_philo **philos, t_times times)
 {
-	t_thread	*threads;
 	int			i;
 	int			res;
+	pthread_t	*thread_temp;
 
 	//times.philos = philos;
-	threads = malloc (sizeof(t_thread) * times.num_philos);
-	if (!threads)
-		return (1);
 	times.time_begin = ft_time();
 	i = 0;
+	times.lock = true;
 	while (i < times.num_philos)
 	{
-		threads[i].num = i;
-		philos[i].times = times;
-		res = pthread_create(&threads[i].thread, NULL, p_routine, &philos[i]);
+		philos[i]->times = times;
+		//write(1, "here\n", 4);
+		thread_temp = &philos[i]->thread;
+		res = pthread_create(thread_temp, NULL, &p_routine, (void *)philos[i]);
 		if (res != 0)
 			return (exit_error("Thread create problem"));
-		philos[i].thread = threads[i].thread;
 		i++;
 	}
+	times.lock = false;
 	check_if_died(&times, philos);
 	return (0);
 }
@@ -111,7 +110,7 @@ void	ft_print(t_times times, int num, t_state state)
 	pthread_mutex_unlock(&(times.print));
 }
 
-void	check_if_died(t_times *times, t_philo *philo)
+void	check_if_died(t_times *times, t_philo **philo)
 {
 	int	i;
 
@@ -120,7 +119,7 @@ void	check_if_died(t_times *times, t_philo *philo)
 		i = 0;
 		while (i < times->num_philos)
 		{
-			if (ft_time() - philo[i].time_since_meal > times->t_die)
+			if (ft_time() - philo[i]->time_since_meal > times->t_die)
 			{
 				ft_print(*times, i, DYING);
 				times->death = true;
@@ -129,11 +128,21 @@ void	check_if_died(t_times *times, t_philo *philo)
 			//usleep(50);
 		}
 		i = 0;
-		while (times->meals_to_eat != -1 && i < times->num_philos && philo[i].meals >= times->meal_counter)
+		while (times->meals_to_eat != -1 && i < times->num_philos && philo[i]->meals >= times->meal_counter)
 			i++;
 		if (i == times->num_philos)
 			times->meal_counter++;
 	}
+}
+
+//erst wenn alle Threads created sind, soll es losgehen
+bool	ft_lock_sleep(t_times *times)
+{
+	pthread_mutex_lock(&(times->mutex));
+	if (times->lock == true)
+		usleep(5);
+	pthread_mutex_unlock(&(times->mutex));
+	return (times->lock);
 }
 
 void	*p_routine(void *philo_in)
@@ -141,11 +150,16 @@ void	*p_routine(void *philo_in)
 	t_philo	*philo;
 	t_times	times;
 	int		i;
+
+	printf("here\n");
 	philo = (t_philo *)philo_in;
+	printf("%i\n", philo->number);
 	times = philo->times;
 	i = 0;
+	//
+	while (ft_lock_sleep(&times) == true);
 	if (philo[i].number % 2 == 0)
-		usleep((times.t_eat - 10) * 1000); // Abhängig von den gegebenen Zeiten?
+		go_sleeping(times.t_eat); // Abhängig von den gegebenen Zeiten?
 	while (times.death == false)
 	{
 		if (try_eating(philo[i], &times) == true)
@@ -161,7 +175,7 @@ void	*p_routine(void *philo_in)
 			i++;
 		}
 	}
-	check_if_died(&times, philo);
+	check_if_died(&times, &philo);
 	ft_stop(times, philo);
 	return (NULL);
 }

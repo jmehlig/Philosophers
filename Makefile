@@ -6,7 +6,7 @@
 #    By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2022/05/04 12:54:14 by jmehlig           #+#    #+#              #
-#    Updated: 2022/06/05 10:54:42 by jmehlig          ###   ########.fr        #
+#    Updated: 2022/06/07 20:41:06 by jmehlig          ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -32,6 +32,7 @@ $(NAME): $(addprefix $(SDIR)/, $(SRCS))
 	@mkdir -p $(ODIR)
 	@mv $(OBJS) $(ODIR)
 	$(CC) $(CFLAGS) $(addprefix $(ODIR)/, $(OBJS)) -o $(NAME)
+
 all: $(NAME)
 
 clean:
