@@ -6,32 +6,38 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 14:32:19 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/06 12:47:10 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/10 15:11:58 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	go_sleeping(int time)
+void	go_sleeping(int time, t_philo *philo, t_times *times)
 {
-	long long i;
+	long long	i;
+	long long	j;
 
+	pthread_mutex_lock(&(times->mutex));
 	i = ft_time();
-	while (time < ft_time() - i)
-		usleep(5);
+	j = i;
+	while (time > j - i)
+	{
+		//check_if_died(times, philo);
+		printf("%i sleeping\n", philo->number + 1);
+		usleep(100);
+		j = ft_time();
+	}
+	pthread_mutex_unlock(&(times->mutex));
 }
 
-void	ft_stop(t_times times, t_philo *philo)
+void	ft_stop(t_times *times)
 {
 	int	i;
-	int	j;
 
 	i = 0;
-	j = 0;
-
-	while (i < times.num_philos)
+	while (i < times->num_philos)
 	{
-		pthread_join(philo[i].thread, NULL);
+		pthread_join(times->philos[i]->thread, NULL);
 		i++;
 	}
 	// while (j < times.num_philos)
@@ -39,55 +45,71 @@ void	ft_stop(t_times times, t_philo *philo)
 	// 	pthread_mutex_destroy(&(times.forks[j]));
 	// 	j++;
 	// }
-	pthread_mutex_destroy(&(times.mutex));
-	pthread_mutex_destroy(&(times.print));
+	pthread_mutex_destroy(&(times->mutex));
+	pthread_mutex_destroy(&(times->print));
+	pthread_mutex_destroy(&(times->is_eating));
 }
 
-bool	try_eating(t_philo philo, t_times *times)
+void	philo_eat(t_philo *philo, t_times *times)
 {
-	if (times->fork_states[philo.left_fork] == false && times->fork_states[philo.right_fork] == false)
+	int	i;
+
+	i = 0;
+	if (times->fork_states[philo->left_fork] == false && times->fork_states[philo->right_fork] == false)
 	{
 		//printf("test");
+		pthread_mutex_lock(&(times->is_eating));
+		times->fork_states[philo->left_fork] = true;
+		ft_print(*times, philo->number, TAKE_FORK);
+		times->fork_states[philo->right_fork] = true;
+		pthread_mutex_unlock(&(times->is_eating));
+		ft_print(*times, philo->number, TAKE_FORK);
+		ft_print(*times, philo->number, EATING);
+		if  (check_if_died(times, philo) == true)
+			return ;
+		go_sleeping(times->t_eat, philo, times);
 		pthread_mutex_lock(&(times->mutex));
-		times->fork_states[philo.left_fork] = true;
-		ft_print(*times, philo.number, TAKE_FORK);
-		times->fork_states[philo.right_fork] = true;
-		ft_print(*times, philo.number, TAKE_FORK);
-		philo.state = EATING;
-		ft_print(*times, philo.number, EATING);
-		times->fork_states[philo.left_fork] = false;
-		times->fork_states[philo.right_fork] = false;
+		printf("%i finished eating\n", philo->number + 1);
 		pthread_mutex_unlock(&(times->mutex));
-		philo.time_since_meal = ft_time();
-	//	go_sleeping(times->t_sleep);
-		(philo.meals)++;
-		return (true);
+		pthread_mutex_lock(&(times->is_eating));
+		times->fork_states[philo->left_fork] = false;
+		times->fork_states[philo->right_fork] = false;
+		pthread_mutex_unlock(&(times->is_eating));
+		philo->time_since_meal = ft_time();
+		philo->state = SLEEPING;
+		(philo->meals)++;
+		// while (times->meals_to_eat != -1 && i < times->num_philos && times->philos[philo->number]->meals >= times->meal_counter)
+		// 	i++;
+		// pthread_mutex_lock(&(times->mutex));
+		// if (i == times->num_philos)
+		// 	times->meal_counter++;
+		// pthread_mutex_unlock(&(times->mutex));
 	}
-	return (false);
+	else
+		usleep(50);
 }
 
 int	ft_start(t_philo **philos, t_times times)
 {
 	int			i;
 	int			res;
-	pthread_t	*thread_temp;
 
 	//times.philos = philos;
 	times.time_begin = ft_time();
 	i = 0;
+	times.philos = philos;
 	times.lock = true;
 	while (i < times.num_philos)
 	{
 		philos[i]->times = times;
 		//write(1, "here\n", 4);
-		thread_temp = &philos[i]->thread;
-		res = pthread_create(thread_temp, NULL, &p_routine, (void *)philos[i]);
+		res = pthread_create(&philos[i]->thread, NULL, &p_routine, (void *)philos[i]);
 		if (res != 0)
 			return (exit_error("Thread create problem"));
 		i++;
 	}
 	times.lock = false;
-	check_if_died(&times, philos);
+	check_if_died(&times, *philos);
 	return (0);
 }
 
@@ -98,41 +120,26 @@ void	ft_print(t_times times, int num, t_state state)
 	time = ft_time() - times.time_begin;
 	pthread_mutex_lock(&(times.print));
 	if (state == DYING)
-		printf("%llims  %i   has    died\n", time, num);
+		printf("%llims  %i   has    died\n", time, num + 1);
 	else if (state == TAKE_FORK)
-		printf("%llims  %i   has   taken a fork\n", time, num);
+		printf("%llims  %i   has   taken a fork\n", time, num + 1);
 	else if (state == EATING)
-		printf("%llims  %i   is    eating\n", time, num);
+		printf("%llims  %i   is    eating\n", time, num + 1);
 	else if (state == SLEEPING)
-		printf("%llims  %i   is    sleeping\n", time, num);
+		printf("%llims  %i   is    sleeping\n", time, num + 1);
 	else if (state == THINKING)
-		printf("%llims  %i   is    thinking\n", time, num);
+		printf("%llims  %i   is    thinking\n", time, num + 1);
 	pthread_mutex_unlock(&(times.print));
 }
 
-void	check_if_died(t_times *times, t_philo **philo)
+bool	check_if_died(t_times *times, t_philo *philo)
 {
-	int	i;
-
-	while (times->meal_counter < times->meals_to_eat && times->death == false)
+	if (times->t_die < ft_time() - philo->time_since_meal)
 	{
-		i = 0;
-		while (i < times->num_philos)
-		{
-			if (ft_time() - philo[i]->time_since_meal > times->t_die)
-			{
-				ft_print(*times, i, DYING);
-				times->death = true;
-			}
-			i++;
-			//usleep(50);
-		}
-		i = 0;
-		while (times->meals_to_eat != -1 && i < times->num_philos && philo[i]->meals >= times->meal_counter)
-			i++;
-		if (i == times->num_philos)
-			times->meal_counter++;
+		philo->state = DYING;
+		return (true);
 	}
+	return (false);
 }
 
 //erst wenn alle Threads created sind, soll es losgehen
@@ -145,38 +152,57 @@ bool	ft_lock_sleep(t_times *times)
 	return (times->lock);
 }
 
+void	philo_sleep(t_philo *philo, t_times *times)
+{
+	ft_print(*times, philo->number, SLEEPING);
+	philo->state = THINKING;
+	go_sleeping(times->t_sleep, philo, times);
+}
+
+void	philo_think(t_philo *philo, t_times *times)
+{
+	ft_print(*times, philo->number, THINKING);
+	philo->state = EATING;
+}
+
+void	philo_die(t_philo *philo, t_times *times)
+{
+	times->death = true;
+	ft_print(*times, philo->number, DYING);
+}
+
 void	*p_routine(void *philo_in)
 {
 	t_philo	*philo;
 	t_times	times;
-	int		i;
 
-	printf("here\n");
 	philo = (t_philo *)philo_in;
-	printf("%i\n", philo->number);
 	times = philo->times;
-	i = 0;
-	//
-	while (ft_lock_sleep(&times) == true);
-	if (philo[i].number % 2 == 0)
-		go_sleeping(times.t_eat); // Abhängig von den gegebenen Zeiten?
+	//printf("%i\n", philo->number);
+	//while (ft_lock_sleep(&times) == true);
+	if (philo->number % 2 == 0)
+		go_sleeping(times.t_eat / 2, philo, &times); // Abhängig von den gegebenen Zeiten?
 	while (times.death == false)
 	{
-		if (try_eating(philo[i], &times) == true)
-		{
-			printf("haaaaaalllo");
-			if (times.meal_counter == times.meals_to_eat)
-				break ;
-			philo->state = SLEEPING;
-			ft_print(times, philo[i].number, SLEEPING);
-			go_sleeping(times.t_sleep);
-			philo->state = THINKING;
-			ft_print(times, philo[i].number, THINKING);
-			i++;
-		}
+		check_if_died(&times, philo);
+		pthread_mutex_lock(&(times.mutex));
+		if (times.death == true)
+			printf("dead");
+		pthread_mutex_unlock(&(times.mutex));
+		times.philos[philo->number] = philo;
+		if (times.meal_counter == times.meals_to_eat)
+			break ;
+		if (philo->state == SLEEPING)
+			philo_sleep(philo, &times);
+		if (philo->state == THINKING)
+			philo_think(philo, &times);
+		if (philo->state == EATING)
+			philo_eat(philo, &times);
+		if (philo->state == DYING)
+			philo_die(philo, &times);
 	}
-	check_if_died(&times, &philo);
-	ft_stop(times, philo);
+	//check_if_died(&times, &philo);
+	ft_stop(&times);
 	return (NULL);
 }
 

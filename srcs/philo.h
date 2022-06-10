@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 13:09:20 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/06 12:46:53 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/10 15:04:55 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@
 # include <stdbool.h>
 # include <limits.h>
 
-typedef struct s_times t_times;
+typedef struct s_philo	t_philo;
 
 typedef enum e_state
 {
@@ -44,6 +44,7 @@ typedef struct s_times
 	bool		*fork_states;
 	bool		death;
 	bool		lock;
+	t_philo		**philos;
 	pthread_mutex_t	mutex;
 	pthread_mutex_t	print;
 	pthread_mutex_t	is_eating;
@@ -73,12 +74,12 @@ int			exit_error(char *mes);
 int			ft_atoi(const char *str);
 
 //actions.c
-void		go_sleeping(int t_sleep);
-void		ft_stop(t_times times, t_philo *philo);
-bool		try_eating(t_philo philo, t_times *times);
+void		go_sleeping(int time, t_philo *philo, t_times *times);
+void		ft_stop(t_times *times);
+void		philo_eat(t_philo *philo, t_times *times);
 int			ft_start(t_philo **philos, t_times times);
 void		ft_print(t_times times, int num, t_state state);
-void		check_if_died(t_times *times, t_philo **philo);
+bool		check_if_died(t_times *times, t_philo *philo);
 void		*p_routine(void *philo_in);
 int			ft_lonely(t_times times);
 

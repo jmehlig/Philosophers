@@ -6,7 +6,7 @@
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/05/04 13:08:51 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/06 12:48:13 by jmehlig          ###   ########.fr       */
+/*   Updated: 2022/06/10 15:00:10 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -128,7 +128,7 @@ t_philo	*init_philo(int num)
 	phil->left_fork = num;
 	phil->right_fork = num + 1;
 	phil->number = num;
-	phil->state = THINKING;
+	phil->state = EATING;
 	phil->meals = 0;
 	return (phil);
 }
