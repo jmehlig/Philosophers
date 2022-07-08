@@ -5,23 +5,23 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/05/04 13:09:20 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/10 15:04:55 by jmehlig          ###   ########.fr       */
+/*   Created: 2022/06/12 11:16:34 by jmehlig           #+#    #+#             */
+/*   Updated: 2022/06/14 18:01:47 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef PHILO_H
 # define PHILO_H
 
+# include <stddef.h>
+# include <unistd.h>
+# include <stdlib.h>
 # include <stdio.h>
 # include <pthread.h>
 # include <sys/time.h>
-# include <unistd.h>
-# include <stdlib.h>
+# include <string.h>
 # include <stdbool.h>
 # include <limits.h>
-
-typedef struct s_philo	t_philo;
 
 typedef enum e_state
 {
@@ -32,55 +32,93 @@ typedef enum e_state
 	DYING
 }	t_state;
 
-typedef struct s_times
-{
-	int			t_die;
-	int			t_eat;
-	int			t_sleep;
-	long long	time_begin;
-	int			meal_counter;
-	int			meals_to_eat;
-	int			num_philos;
-	bool		*fork_states;
-	bool		death;
-	bool		lock;
-	t_philo		**philos;
-	pthread_mutex_t	mutex;
-	pthread_mutex_t	print;
-	pthread_mutex_t	is_eating;
-}				t_times;
+typedef struct s_data	t_data;
+
+typedef struct s_fork	t_fork;
 
 typedef struct s_philo
 {
-	t_state		state;
-	int			number;
-	int			left_fork;
-	int			right_fork;
-	long long	time_since_meal;
-	//int			*fork_used;
-	int			meals;
-	t_times		times;
-	pthread_t	thread;
-}				t_philo;
+	int				number;
+	int				is_dead;
+	int				times_ate;
+	long long		time_since_meal;
+	long long		t_will_die;
+	t_fork			*left_fork;
+	t_fork			*right_fork;
+	pthread_t		thread;
+	pthread_mutex_t	die_not_eat;
+	struct s_data	*data;
+}					t_philo;
 
-//philo.c
-void		start_mutex(t_times *times);
-int			ft_init(char *argv[]);
-t_philo		*init_philo(int num);
-long long	ft_time(void);
+struct s_fork
+{
+	bool			in_use;
+	pthread_mutex_t	mutex;
+};
+
+struct		s_data
+{
+	int				num_philos;
+	int				t_die;
+	int				t_eat;
+	int				t_sleep;
+	int				meals_to_eat;
+	int				philos_ate_enough;
+	bool			stopped_eating;
+	struct timeval	time_begin;
+	pthread_mutex_t	mutex;
+	pthread_mutex_t	print;
+	t_fork			*forks;
+	t_philo			*philos;
+};
+
+// actions.c
+int			philo_thinks(t_philo *philo);
+int			philo_sleeps(t_philo *philo);
+int			philo_dies(t_philo *philo);
+int			philo_eats(t_philo *philo);
+
+// eat_utils.c
+int			reset_time(t_philo *philo);
+int			pick_up_right_fork(t_philo *philo);
+int			pick_up_left_fork(t_philo *philo);
+
+// init.c
+int			create_forks(t_fork **forks, t_data *data);
+int			init_philos(t_philo **philos, t_data *data);
+
+// philo.c
+int			create_philos(t_philo **philos, t_data *data);
+void		get_arguments(t_data *data, char **argv);
+int			ft_lonely(t_data data);
+int			ft_init(char **argv);
+
+// printing.c
+int			ft_print_died(t_philo *philo, long long time,
+				t_state state);
+int			ft_print(t_philo *philo, long long time,
+				t_state state);
+int			check_all_ate(t_data *data);
+
+// routine.c
+int			finish_eating(t_philo *philo);
+void		p_routine(t_philo *philo);
+
+//stop.c
+void		destroy_mutexs(int n, t_fork *obj);
+void		ft_stop(t_data *data);
+int			exit_error(char *mes);
+void		print_error(char *mes);
+
+//time.c
+long long	ft_time(t_data *data);
+void		ft_sleep(long long wake_time, t_data *data);
+void		end(t_data *data);
+int			not_all_ate(t_data *data);
+bool		check_if_died(t_philo *philo);
 
 //utils.c
-int			exit_error(char *mes);
-int			ft_atoi(const char *str);
-
-//actions.c
-void		go_sleeping(int time, t_philo *philo, t_times *times);
-void		ft_stop(t_times *times);
-void		philo_eat(t_philo *philo, t_times *times);
-int			ft_start(t_philo **philos, t_times times);
-void		ft_print(t_times times, int num, t_state state);
-bool		check_if_died(t_times *times, t_philo *philo);
-void		*p_routine(void *philo_in);
-int			ft_lonely(t_times times);
+size_t		ft_strlen(const char *str);
+long		ft_atoi(const char *str);
 
 #endif

@@ -5,32 +5,24 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/05/04 14:18:29 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/04 12:21:49 by jmehlig          ###   ########.fr       */
+/*   Created: 2022/06/12 11:17:03 by jmehlig           #+#    #+#             */
+/*   Updated: 2022/06/12 15:58:13 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-static int	ft_isdigit(int c)
+size_t	ft_strlen(const char *str)
 {
-	if (c >= '0' && c <= '9')
-	{
-		return (1);
-	}
-	else
-	{
-		return (0);
-	}
+	size_t	count;
+
+	count = 0;
+	while (str[count] != '\0')
+		count++;
+	return (count);
 }
 
-int	exit_error(char *mes)
-{
-	printf("%s", mes);
-	exit(EXIT_FAILURE);
-}
-
-int	ft_atoi(const char *str)
+long	ft_atoi(const char *str)
 {
 	size_t	i;
 	int		sign;
@@ -47,7 +39,7 @@ int	ft_atoi(const char *str)
 			sign *= -1;
 		i++;
 	}
-	while (ft_isdigit(str[i]))
+	while ((str[i] >= '0' && str[i] <= '9'))
 	{
 		sum = (sum * 10) + (str[i] - 48);
 		i++;

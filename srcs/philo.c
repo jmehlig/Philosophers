@@ -5,20 +5,92 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: jmehlig <jmehlig@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/05/04 13:08:51 by jmehlig           #+#    #+#             */
-/*   Updated: 2022/06/10 15:00:10 by jmehlig          ###   ########.fr       */
+/*   Created: 2022/06/12 11:16:25 by jmehlig           #+#    #+#             */
+/*   Updated: 2022/06/14 15:22:30 by jmehlig          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-// Join threads???
-// Destroy threads?
+static int	set_philo(int i, t_philo *philo, t_data *data)
+{
+	if (pthread_mutex_init(&philo->die_not_eat, NULL) != 0)
+	{
+		print_error("Mutex creation failed\n");
+		return (0);
+	}
+	philo->data = data;
+	philo->number = i + 1;
+	if (i % 2)
+		usleep(100);
+	philo->t_will_die = data->t_die;
+	philo->left_fork = &data->forks[i];
+	if (i == data->num_philos - 1)
+		philo->right_fork = &data->forks[0];
+	else
+		philo->right_fork = &data->forks[i + 1];
+	if (pthread_create(&philo->thread, NULL, (void *)&p_routine,
+			(void *)philo) != 0)
+	{
+		print_error("Thread creation failed\n");
+		return (0);
+	}
+	return (1);
+}
+
+int	create_philos(t_philo **philos, t_data *data)
+{
+	int	i;
+
+	i = 0;
+	if (gettimeofday(&data->time_begin, NULL) == -1)
+	{
+		ft_stop(data);
+		print_error("Timestamp went wrong\n");
+		return (0);
+	}
+	while (i < data->num_philos)
+	{
+		if (!set_philo(i, &(*philos)[i], data))
+		{
+			pthread_mutex_lock(&data->print);
+			end(data);
+			pthread_mutex_unlock(&data->print);
+			pthread_mutex_lock(&data->print);
+			print_error("An error occured while creating a philo\n");
+			pthread_mutex_unlock(&data->print);
+			ft_stop(data);
+			return (0);
+		}
+		i++;
+	}
+	return (1);
+}
+
+void	get_arguments(t_data *data, char **argv)
+{
+	memset(data, 0, sizeof(t_data));
+	data->num_philos = (unsigned int)ft_atoi(argv[1]);
+	data->t_die = ft_atoi(argv[2]);
+	data->t_eat = ft_atoi(argv[3]);
+	data->t_sleep = ft_atoi(argv[4]);
+	if (argv[5])
+		data->meals_to_eat = ft_atoi(argv[5]);
+	data->stopped_eating = false;
+}
+
+int	ft_lonely(t_data data)
+{
+	printf("%6ims  %i   has   taken a fork\n", 0, 1);
+	printf("\e[;31m%6ims  %i   was taken by the reaper\n",
+		data.t_die, 1);
+	return (0);
+}
 
 int	main(int argc, char *argv[])
 {
-	int		i;
-	int		j;
+	int	i;
+	int	j;
 
 	if (!(argc == 5 || argc == 6))
 		return (exit_error("Not the right input"));
@@ -26,118 +98,20 @@ int	main(int argc, char *argv[])
 	while (argv[i])
 	{
 		j = 0;
-		while (argv[i][j])
+		if (j == 0 && argv[i][j] == '+')
+			j++;
+		while (argv[i][j] != '\0')
 		{
-			if (argv[i][j] >= '0' && argv[i][j] <= '9')
+			if ((argv[i][j] >= '0' && argv[i][j] <= '9'))
 				j++;
 			else
 				return (exit_error("Should be numeric arguments."));
 		}
+		if (ft_atoi(argv[i]) > 2147483647)
+			return (exit_error("Argument too large"));
 		i++;
 	}
-	if(ft_init(argv) == 1)
-		return (exit_error("Input out of range"));
-}
-
-void	start_mutex(t_times *times)
-{
-	int	i;
-
-	i = 0;
-	// while (i < times->num_philos)
-	// {
-	// 	if (pthread_mutex_init(&(times->forks[i]), NULL))
-	// 		exit_error("Creating mutex went wrong");
-	// 	i++;
-	// }
-	if (pthread_mutex_init(&times->mutex, NULL))
-		exit_error("Creating mutex went wrong");
-	if (pthread_mutex_init(&(times->print), NULL))
-		exit_error("Creating mutex went wrong");
-	if (pthread_mutex_init(&(times->is_eating), NULL))
-		exit_error("Creating mutex went wrong");
-}
-
-void	init_fork_states(t_times *times)
-{
-	int	i;
-
-	i = 0;
-	while (i < times->num_philos)
-	{
-		times->fork_states[i] = false;
-		i++;
-	}
-}
-
-int	ft_init(char *argv[])
-{
-	t_philo	**philos;
-	int		i;
-	t_times	times;
-
-	times.num_philos = ft_atoi(argv[1]);
-	times.t_die = ft_atoi(argv[2]);
-	times.t_eat = ft_atoi(argv[3]);
-	times.t_sleep = ft_atoi(argv[4]);
-	if (argv[5])
-	{
-		times.meals_to_eat = ft_atoi(argv[5]);
-		if (times.meals_to_eat <= 0)
-			return (1);
-	}
-	else
-		times.meals_to_eat = -1;
-	//times.forks = malloc(sizeof(pthread_mutex_t) * times.num_philos);
-	times.fork_states = malloc (sizeof(bool) * times.num_philos);
-	philos = malloc(sizeof(t_philo *) * times.num_philos);
-	if (!philos || !times.fork_states)
-		return (1);
-	init_fork_states(&times);
-	times.time_begin = ft_time();
-	times.meal_counter = 0;
-	times.death = false;
-	if (times.t_eat > times.t_die)
-		times.t_eat = times.t_die;
-	if (times.t_sleep > times.t_die)
-		times.t_sleep = times.t_die;
-	if (times.num_philos < 1 || times.t_die < 0 || times.t_eat < 0 || times.t_sleep < 0)
-		return (1);
-	if (times.num_philos == 1)
-		return (ft_lonely(times));
-	start_mutex(&times);
-	i = 0;
-	while (i < times.num_philos)
-	{
-		philos[i] = init_philo(i);
-		if (i == times.num_philos - 1)
-			philos[i]->left_fork = 0;
-		i++;
-	}
-	ft_start(philos, times);
+	if (ft_init(argv) == 1)
+		exit_error("Not the right input");
 	return (0);
-}
-
-// forks?
-t_philo	*init_philo(int num)
-{
-	t_philo	*phil;
-
-	phil = malloc(sizeof(t_philo));
-	phil->time_since_meal = ft_time();
-	phil->left_fork = num;
-	phil->right_fork = num + 1;
-	phil->number = num;
-	phil->state = EATING;
-	phil->meals = 0;
-	return (phil);
-}
-
-long long	ft_time(void)
-{
-	struct timeval	t;
-
-	if(gettimeofday(&t, NULL))
-		return (exit_error("timestamp went wrong"));
-	return ((t.tv_sec * 1000) + (t.tv_usec / 1000));
 }
